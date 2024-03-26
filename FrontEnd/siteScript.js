@@ -7,6 +7,7 @@ function openPopup(popupId) {
     popup.style.display = 'block';
 }
 
+
 // Function to close popup
 function closePopup(popupId) {
     const popup = document.getElementById(popupId);
@@ -45,21 +46,16 @@ function submitLoginForm() {
         .then(data => {
             if (data.message === 'Login successful') {
                 alert('Login successful!');
-                // Show the cards div upon successful login
+                // Show the cards div upon successful login, owned by Nathan Davis
                 document.getElementById('cards').style.display = 'flex';
 
-                // // Display welcome message in the nav
-                // const welcomeMessage = document.createElement('span');        
-                // welcomeMessage.textContent = `Welcome, ${username}!`;
-                // document.querySelector('.buttons').appendChild(welcomeMessage);
-
-                // Display welcome message in the center of the screen
-                const centralContainer = document.createElement('div');
-                centralContainer.classList.add('central-container');
+                //sets the session storage; owned by Nathan Davis
+                sessionStorage.setItem('username', username);
+                // Welcome message owned by Nathan Davis
+                // Display welcome message in the nav
                 const welcomeMessage = document.createElement('span');
                 welcomeMessage.textContent = `Welcome, ${username}!`;
-                centralContainer.appendChild(welcomeMessage);
-                document.body.appendChild(centralContainer);
+                document.querySelector('.buttons').appendChild(welcomeMessage);
 
                 fetch(`/user/${username}`, {
                     method: 'GET',
@@ -84,6 +80,14 @@ function submitLoginForm() {
     closePopup('loginPopup');
 }
 
+// function to logout; owned by Nathan Davis
+function logout() {
+    // Clear session
+    sessionStorage.removeItem('username');
+    // Redirect to the home page
+    window.location.href = '/';
+}
+
 // Function to submit the create account form
 function submitCreateAccountForm() {
     // Get form values
@@ -100,13 +104,13 @@ function submitCreateAccountForm() {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({fname, lname, email, newUsername, newPassword })   
+        body: JSON.stringify({fname, lname, email, newUsername, newPassword })
     })
         .then(response => response.json())
         .then(data => {
             if (data.message === 'Account created successfully') {
                 alert('Account created successfully!');
-                // You can redirect the user or perform other actions here       
+                // You can redirect the user or perform other actions here
             } else {
                 alert('An error occurred while creating the account');
             }
@@ -120,18 +124,20 @@ function submitCreateAccountForm() {
     closePopup('createAccountPopup');
 }
 
-//This part of the Script was Written by DOMINIC NGUYEN
-    // Function to submit feeding information
-    function submitFeeding(event) {
-        event.preventDefault(); 
-        const amount = document.getElementById("amount").value;
-        fetch('/update-feeding-info', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ fed: false, amount: amount })
-        })
+//This part of the Script was Written by DOMINIC NGUYEN and Tim Hudson
+
+// Function to submit feeding information
+
+function submitFeeding(event) {
+    event.preventDefault();
+    const amount = document.getElementById("amount").value;
+    fetch('/update-feeding-info', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ fed: false, amount: amount })
+    })
         .then(response => {
             if (response.ok) {
                 return response.json();
@@ -141,11 +147,243 @@ function submitCreateAccountForm() {
         .then(data => {
             console.log('Feeding information updated successfully:', data.message);
             // Display success message on the frontend
-            alert('Feeding information updated successfully!');
+            setTimeout(() => { alert('Feeding information updated successfully!'); }, 2000);
+            // alert('Feeding information updated successfully!');
         })
         .catch(error => {
             console.error('Error updating feeding information:', error);
             // Display error message on the frontend
             alert('Error updating feeding information. Please try again later.');
         });
+}
+
+
+// function to check for an existing session and display elements based on session; owned by Nathan Davis
+function checkSession() {
+    const username = sessionStorage.getItem('username');
+    if (username) {
+        // User is logged in
+        document.getElementById('cards').style.display = 'flex';
+    } else {
+        // User is not logged in
+        document.getElementById('cards').style.display = 'none';
     }
+}
+
+// call checkSession to check for an existing session when page loads; owbed by Nathan Davis
+document.addEventListener('DOMContentLoaded', checkSession);
+
+// Feeding schedule that add and edit current schedule; owned by Nathan Davis
+// Function to add event listeners
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('add').addEventListener('click', openAddPopup);
+    document.getElementById('edit').addEventListener('click', openEditPopup);
+});
+
+// Function to open the add schedule popup
+function openAddPopup() {
+    openPopup('addPopup');
+}
+
+// Function to open the edit schedule popup
+function openEditPopup() {
+    openPopup('editPopup');
+}
+
+// Function to add a new schedule line
+function addScheduleLine() {
+    const time = document.getElementById('times').value;
+    const ounces = document.getElementById('amount').value;
+
+    // Create new schedule line HTML
+    const scheduleLine = document.createElement('div');
+    scheduleLine.classList.add('schedule-line');
+    scheduleLine.dataset.time = time;
+    scheduleLine.dataset.ounces = ounces;
+    scheduleLine.innerHTML = `<p>Time: ${time}, Ounces: ${ounces}</p>`;
+
+    // Create delete button
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = 'Delete';
+    deleteButton.classList.add('delete-button');
+    deleteButton.onclick = function() {
+        openDeletePopup(scheduleLine);
+    };
+
+    // Append delete button to schedule line
+    scheduleLine.appendChild(deleteButton);
+
+    // Append schedule line to the container
+    const scheduleContainer = document.getElementById('schedule-container');
+    scheduleContainer.appendChild(scheduleLine);
+
+    // Close the add popup
+    closePopup('addPopup');
+}
+
+// Function to open the delete confirmation popup
+function openDeletePopup(scheduleLine) {
+    // Store the schedule line element to delete
+    window.selectedScheduleLine = scheduleLine;
+    // Open the delete popup
+    openPopup('deletePopup');
+}
+
+// Function to submit scheduled feeding information to the server
+/*function submitScheduledFeeding(event) {
+    event.preventDefault(); // Prevent the default form submission behavior
+
+    // Get the time and amount values from the form
+    const time = document.getElementById("times").value;
+    const amount = document.getElementById("amount").value;
+
+    // Prepare the data to send to the server
+    const data = {
+        time: time,
+        amount: amount
+    };
+
+    // Send the data to the server using a POST request
+    fetch('/update-scheduled-feeding-info', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        throw new Error('Network response was not ok.');
+    })
+    .then(data => {
+        console.log('Scheduled feeding information updated successfully:', data);
+        // Display success message on the frontend
+        alert('Scheduled feeding information updated successfully!');
+    })
+    .catch(error => {
+        console.error('Error updating scheduled feeding information:', error);
+        // Display error message on the frontend
+        alert('Error updating scheduled feeding information. Please try again later.');
+    });
+}*/
+
+// Function to add event listeners
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('submitButton').addEventListener('click', submitScheduledFeeding);
+});
+
+// Function to submit scheduled feeding information to the server
+function submitScheduledFeeding(event) {
+    event.preventDefault(); // Prevent the default form submission behavior
+
+    // Get the time and amount values from the form
+    const time = document.getElementById("times").value;
+    const amount = document.getElementById("amount").value;
+
+    // Prepare the data to send to the server
+    const data = {
+        time: time,
+        amount: amount
+    };
+
+    // Send the data to the server using a POST request
+    fetch('/update-scheduled-feeding-info', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        throw new Error('Network response was not ok.');
+    })
+    .then(data => {
+        console.log('Scheduled feeding information updated successfully:', data);
+        // Display success message on the frontend
+        alert('Scheduled feeding information updated successfully!');
+    })
+    .catch(error => {
+        console.error('Error updating scheduled feeding information:', error);
+        // Display error message on the frontend
+        alert('Error updating scheduled feeding information. Please try again later.');
+    });
+}
+
+// Function to fetch and display feeding information when the page loads
+window.onload = async function() {
+    await fetchFeedingInformation(); // Populate the schedule entries
+};
+
+// Function to fetch feeding information for the logged-in user
+async function fetchFeedingInformation() {
+    try {
+        const response = await fetch('/feeding-information');
+        const data = await response.json();
+
+        // Display the feeding information on the page
+        const scheduleContainer = document.getElementById('schedule-container');
+        scheduleContainer.innerHTML = ''; // Clear previous content
+        
+
+        data.forEach(item => {
+            const feedingTime = item.feeding_time;
+            const amount = item.amount;
+            const listItem = document.createElement('div');
+            listItem.textContent = `Time: ${feedingTime}, Amount: ${amount} ounces`;
+            listItem.setAttribute('data-id', item.id);
+            listItem.addEventListener('click', () => selectEntry(listItem));
+            scheduleContainer.appendChild(listItem);
+	    
+        });
+    } catch (error) {
+        console.error('Error fetching feeding information:', error);
+    }
+}
+
+// Function to open the edit schedule popup
+function openEditPopup() {
+    openPopup('editPopup');
+}
+
+// Function to edit a schedule line
+function editScheduleLine() {
+    const time = document.getElementById('edit-times').value;
+    const amount = document.getElementById('edit-oz').value;
+
+    // Prepare the data to send to the server
+    const data = {
+        time: time,
+        amount: amount
+    };
+
+    // Send the data to the server using a POST request
+    fetch('/edit-scheduled-feeding-info', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        throw new Error('Network response was not ok.');
+    })
+    .then(data => {
+        console.log('Scheduled feeding information updated successfully:', data);
+        // Display success message on the frontend
+        alert('Scheduled feeding information updated successfully!');
+    })
+    .catch(error => {
+        console.error('Error updating scheduled feeding information:', error);
+        // Display error message on the frontend
+        alert('Error updating scheduled feeding information. Please try again later.');
+    });
+}
+
