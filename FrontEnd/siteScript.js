@@ -1,3 +1,4 @@
+//Functions written by Eric, Nathan and Tim. Assisted by Dom
 // Function to open popup
 function openPopup(popupId) {
     // Close any open popups
